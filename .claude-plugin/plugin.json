@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "lexdino",
+  "displayName": "LexDino",
+  "version": "0.3.0",
+  "description": "Source-backed Israeli legal research in Hebrew and English: search Israeli rulings and statutes in the LexDino corpus, read exact passages, resolve citations and verify quotations. Uses an existing Louis account.",
+  "author": {
+    "name": "LexDino",
+    "email": "office@louis-ai.net",
+    "url": "https://lexdino.com"
+  },
+  "homepage": "https://lexdino.com",
+  "license": "LicenseRef-Proprietary",
+  "keywords": [
+    "israeli-law",
+    "legal-research",
+    "case-law",
+    "statutes",
+    "hebrew",
+    "citations"
+  ],
+  "icon": "./assets/icon.svg",
+  "documentationUrl": "https://louis-ai.net/connect",
+  "supportUrl": "https://louis-ai.net/contact",
+  "privacyPolicyUrl": "https://louis-ai.net/privacy",
+  "termsOfServiceUrl": "https://louis-ai.net/terms"
+}

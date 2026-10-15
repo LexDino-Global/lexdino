@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "lexdino": {
+      "type": "http",
+      "url": "https://mcp.lexdino.com/mcp"
+    }
+  }
+}

@@ -1,0 +1,95 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Manifests are valid JSON
+        run: |
+          for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json .mcp.json; do
+            python3 -m json.tool "$f" > /dev/null || { echo "::error file=$f::invalid JSON"; exit 1; }
+            echo "ok: $f"
+          done
+
+      - name: Manifest schema check
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+          errors = []
+          p = json.load(open(".claude-plugin/plugin.json"))
+          for k in ("name", "version", "description", "author", "license"):
+              if not p.get(k):
+                  errors.append(f"plugin.json: missing {k}")
+          if not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", p.get("name", "")) or len(p.get("name", "")) > 64:
+              errors.append("plugin.json: name must be kebab-case, at most 64 chars")
+          if not re.fullmatch(r"\d+\.\d+\.\d+([-+].+)?", p.get("version", "")):
+              errors.append("plugin.json: version must be semver")
+          for k in ("homepage", "documentationUrl", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl"):
+              if k in p and not p[k].startswith("https://"):
+                  errors.append(f"plugin.json: {k} must be https")
+          m = json.load(open(".claude-plugin/marketplace.json"))
+          names = [e.get("name") for e in m.get("plugins", [])]
+          if not m.get("name") or not m.get("owner", {}).get("name"):
+              errors.append("marketplace.json: missing name or owner.name")
+          if p.get("name") not in names:
+              errors.append("marketplace.json: no entry for the plugin")
+          for name, server in json.load(open(".mcp.json")).get("mcpServers", {}).items():
+              if server.get("type") != "http" or not server.get("url", "").startswith("https://"):
+                  errors.append(f".mcp.json: {name} must be type http with an https url")
+              if server.get("headers"):
+                  errors.append(f".mcp.json: {name} must not carry headers")
+          if p.get("license") == "LicenseRef-Proprietary":
+              import os
+              if not os.path.isfile("LICENSE"):
+                  errors.append("LICENSE file missing")
+          for e in errors:
+              print(f"::error::{e}")
+          sys.exit(1 if errors else 0)
+          PY
+
+      - name: README has at least 40 words outside code blocks
+        run: |
+          python3 - <<'PY'
+          import re, sys
+          text = re.sub(r"```.*?```", "", open("README.md", encoding="utf-8").read(), flags=re.S)
+          n = len(text.split())
+          print(f"README words outside code blocks: {n}")
+          sys.exit(0 if n >= 40 else 1)
+          PY
+
+      - name: No forbidden strings
+        run: |
+          pattern='supabase|vercel\.app|vercel|trycloudflare|localhost|127\.0\.0\.1|louis-legal-mcp|integrations/lexdin|/Users/|web/lib/|lisfnmjvtekobglxbzwl|team_[A-Za-z0-9]{20,}'
+          if git grep -n -I -i -E "$pattern" -- . ':!.github/workflows/validate.yml'; then
+            echo "::error::forbidden string found (internal host, path or identifier)"
+            exit 1
+          fi
+          # Only one e-mail address may appear.
+          if git grep -h -o -I -E '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' -- . ':!.github/' | grep -v -x 'office@louis-ai.net'; then
+            echo "::error::unexpected e-mail address"
+            exit 1
+          fi
+          echo "clean"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: claude plugin validate
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+          claude plugin validate .
+          claude plugin validate .claude-plugin/plugin.json

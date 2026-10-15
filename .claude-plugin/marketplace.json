@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "lexdino",
+  "description": "LexDino plugins for source-backed Israeli legal research.",
+  "owner": {
+    "name": "LexDino",
+    "email": "office@louis-ai.net",
+    "url": "https://lexdino.com"
+  },
+  "plugins": [
+    {
+      "name": "lexdino",
+      "source": "./",
+      "description": "Source-backed Israeli legal research in Hebrew and English over the LexDino corpus of Israeli rulings and statutes.",
+      "category": "legal",
+      "tags": [
+        "israeli-law",
+        "legal-research",
+        "hebrew"
+      ]
+    }
+  ]
+}
